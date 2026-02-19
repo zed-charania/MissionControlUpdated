@@ -9,6 +9,10 @@ const ALLOW: Array<{ cmd: string; argsPrefix: string[] }> = [
   { cmd: 'openclaw', argsPrefix: ['gateway', 'status'] },
   { cmd: 'openclaw', argsPrefix: ['cron', 'list'] },
   { cmd: 'openclaw', argsPrefix: ['pairing', 'pending'] },
+  // Used by Mission Control "Dispatch" to wake the agent via system events.
+  { cmd: 'openclaw', argsPrefix: ['system', 'event'] },
+  // (Optional) direct agent runs via CLI. Keep disabled until needed.
+  // { cmd: 'openclaw', argsPrefix: ['agent'] },
 ];
 
 function isAllowed(cmd: string, args: string[]) {

@@ -145,6 +145,30 @@ function TaskCard({
   onDelete: () => void;
 }) {
   const otherStatuses = COLUMNS.filter(c => c.key !== task.status);
+  const [dispatching, setDispatching] = useState(false);
+  const [dispatchMsg, setDispatchMsg] = useState<string | null>(null);
+
+  const dispatch = async () => {
+    setDispatching(true);
+    setDispatchMsg(null);
+    try {
+      const res = await fetch('/api/openclaw/dispatch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId: task.id }),
+      }).then(r => r.json());
+
+      if (!res.ok) {
+        setDispatchMsg(res.error || 'Dispatch failed');
+      } else {
+        setDispatchMsg('Dispatched');
+      }
+    } catch (e: any) {
+      setDispatchMsg(String(e));
+    } finally {
+      setDispatching(false);
+    }
+  };
 
   return (
     <div className="card-hover group">
@@ -165,16 +189,35 @@ function TaskCard({
       {task.description && (
         <p className="mt-1.5 text-xs text-gray-400 line-clamp-2">{task.description}</p>
       )}
-      <div className="mt-3 flex items-center gap-2 flex-wrap">
-        {task.owner && (
-          <span className="badge text-[10px]">{task.owner}</span>
-        )}
-        {task.due_date && (
-          <span className="text-[10px] text-gray-500">
-            Due {new Date(task.due_date).toLocaleDateString()}
-          </span>
-        )}
+
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {task.owner && (
+            <span className="badge text-[10px]">{task.owner}</span>
+          )}
+          {task.due_date && (
+            <span className="text-[10px] text-gray-500">
+              Due {new Date(task.due_date).toLocaleDateString()}
+            </span>
+          )}
+        </div>
+
+        <button
+          onClick={dispatch}
+          disabled={dispatching}
+          className="btn-secondary text-[11px] py-1 px-2"
+          title="Dispatch to OpenClaw agent"
+        >
+          {dispatching ? 'Dispatching…' : 'Dispatch'}
+        </button>
       </div>
+
+      {dispatchMsg && (
+        <div className="mt-2 text-[11px] text-gray-400">
+          {dispatchMsg}
+        </div>
+      )}
+
       <div className="mt-2">
         <select
           className="select text-[11px] py-1 px-2"
