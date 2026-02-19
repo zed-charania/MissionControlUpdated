@@ -10,6 +10,26 @@ DATA_DIR_DEFAULT="./data"
 
 say() { printf "%s\n" "$*"; }
 
+port_in_use() {
+  local port="$1"
+  # lsof is present on macOS by default.
+  lsof -nP -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1
+}
+
+choose_port() {
+  local start="${1:-3000}"
+  local p="$start"
+  while [[ "$p" -lt 3100 ]]; do
+    if ! port_in_use "$p"; then
+      echo "$p"
+      return 0
+    fi
+    p=$((p+1))
+  done
+  say "ERROR: no free port found in range ${start}-3099"
+  exit 1
+}
+
 say "Mission Control Setup (local-only)"
 
 # 1) prereqs
@@ -38,6 +58,33 @@ else
   say "- found $ENV_LOCAL"
 fi
 
+# 2b) enforce loopback bind (secure default)
+if ! grep -q '^MISSION_CONTROL_BIND=' "$ENV_LOCAL"; then
+  printf '\nMISSION_CONTROL_BIND=127.0.0.1\n' >> "$ENV_LOCAL"
+fi
+
+# 2c) choose a free port if current/default is taken
+CURRENT_PORT="${MISSION_CONTROL_PORT:-}"
+if [[ -z "$CURRENT_PORT" ]]; then
+  # try to read from .env.local if present
+  CURRENT_PORT="$(grep '^MISSION_CONTROL_PORT=' "$ENV_LOCAL" | tail -n 1 | cut -d= -f2 || true)"
+fi
+CURRENT_PORT="${CURRENT_PORT:-3000}"
+
+if port_in_use "$CURRENT_PORT"; then
+  NEW_PORT="$(choose_port 3000)"
+  # replace or append
+  if grep -q '^MISSION_CONTROL_PORT=' "$ENV_LOCAL"; then
+    # macOS sed -i needs backup suffix
+    sed -i '' "s/^MISSION_CONTROL_PORT=.*/MISSION_CONTROL_PORT=${NEW_PORT}/" "$ENV_LOCAL"
+  else
+    printf '\nMISSION_CONTROL_PORT=%s\n' "$NEW_PORT" >> "$ENV_LOCAL"
+  fi
+  say "- port $CURRENT_PORT in use; set MISSION_CONTROL_PORT=$NEW_PORT in $ENV_LOCAL"
+else
+  say "- port available: $CURRENT_PORT"
+fi
+
 # 3) data dir
 DATA_DIR="${MISSION_CONTROL_DATA_DIR:-$DATA_DIR_DEFAULT}"
 mkdir -p "$DATA_DIR"
@@ -56,4 +103,5 @@ say ""
 say "Next:"
 say "  npm i"
 say "  npm run dev"
-say "  open http://localhost:${MISSION_CONTROL_PORT:-3000}"
+PORT_OUT="$(grep '^MISSION_CONTROL_PORT=' "$ENV_LOCAL" | tail -n 1 | cut -d= -f2 || echo "${MISSION_CONTROL_PORT:-3000}")"
+say "  open http://127.0.0.1:${PORT_OUT}"
