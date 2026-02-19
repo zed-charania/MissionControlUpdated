@@ -147,21 +147,28 @@ function TaskCard({
   const otherStatuses = COLUMNS.filter(c => c.key !== task.status);
   const [dispatching, setDispatching] = useState(false);
   const [dispatchMsg, setDispatchMsg] = useState<string | null>(null);
+  const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
 
   const dispatch = async () => {
     setDispatching(true);
     setDispatchMsg(null);
     try {
-      const res = await fetch('/api/openclaw/dispatch', {
+      const resp = await fetch('/api/openclaw/dispatch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ taskId: task.id }),
-      }).then(r => r.json());
+      });
+      const res = await resp.json();
 
       if (!res.ok) {
         setDispatchMsg(res.error || 'Dispatch failed');
+        // if rate limited, show countdown hint
+        if (resp.status === 429) {
+          setCooldownUntil(Date.now() + 60_000);
+        }
       } else {
         setDispatchMsg('Dispatched');
+        setCooldownUntil(Date.now() + 60_000);
       }
     } catch (e: any) {
       setDispatchMsg(String(e));
@@ -204,17 +211,24 @@ function TaskCard({
 
         <button
           onClick={dispatch}
-          disabled={dispatching}
+          disabled={dispatching || (cooldownUntil !== null && Date.now() < cooldownUntil)}
           className="btn-secondary text-[11px] py-1 px-2"
           title="Dispatch to OpenClaw agent"
         >
-          {dispatching ? 'Dispatching…' : 'Dispatch'}
+          {dispatching
+            ? 'Dispatching…'
+            : (cooldownUntil !== null && Date.now() < cooldownUntil)
+              ? 'Dispatched'
+              : 'Dispatch'}
         </button>
       </div>
 
       {dispatchMsg && (
         <div className="mt-2 text-[11px] text-gray-400">
           {dispatchMsg}
+          {cooldownUntil !== null && Date.now() < cooldownUntil ? (
+            <span className="text-gray-500"> {' '}(cooldown)</span>
+          ) : null}
         </div>
       )}
 

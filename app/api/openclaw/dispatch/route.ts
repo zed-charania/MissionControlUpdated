@@ -41,6 +41,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'task not found' }, { status: 404 });
     }
 
+    // Cooldown guard: prevent accidental repeated dispatch spam.
+    const cooldownMs = 60_000;
+    const last = db
+      .prepare('SELECT created_at FROM task_dispatches WHERE task_id = ? ORDER BY created_at DESC LIMIT 1')
+      .get(taskId) as any;
+    if (last?.created_at) {
+      const lastTs = Date.parse(last.created_at);
+      if (Number.isFinite(lastTs) && Date.now() - lastTs < cooldownMs) {
+        const waitMs = cooldownMs - (Date.now() - lastTs);
+        return NextResponse.json(
+          { ok: false, error: `recently dispatched; wait ${Math.ceil(waitMs / 1000)}s` },
+          { status: 429 },
+        );
+      }
+    }
+
     const requestText = buildDispatchPrompt(task);
 
     // v1 dispatch mechanism: enqueue a system event to wake the main agent.
