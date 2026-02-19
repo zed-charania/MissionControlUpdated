@@ -69,6 +69,10 @@
     @apply btn text-gray-300 hover:bg-white/[0.06];
   }
 
+  .btn-secondary {
+    @apply btn bg-white/[0.06] text-gray-100 hover:bg-white/[0.10] border border-white/[0.08];
+  }
+
   .btn-danger {
     @apply btn text-red-400 hover:bg-red-500/10;
   }
