@@ -1,0 +1,31 @@
+{
+  "name": "openclaw-mission-control",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev -p ${MISSION_CONTROL_PORT:-3000}",
+    "build": "next build",
+    "start": "next start -p ${MISSION_CONTROL_PORT:-3000}",
+    "lint": "next lint",
+    "doctor": "bash scripts/doctor.sh"
+  },
+  "dependencies": {
+    "autoprefixer": "^10.4.24",
+    "better-sqlite3": "^12.6.2",
+    "next": "15.5.12",
+    "postcss": "^8.5.6",
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
+    "tailwindcss": "^3.4.19"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.13.1",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
+    "eslint": "^9.21.0",
+    "eslint-config-next": "15.5.2",
+    "typescript": "^5.7.3"
+  }
+}

@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html, body {
+    height: 100%;
+  }
+
+  body {
+    @apply m-0 bg-base text-gray-200 font-sans antialiased;
+  }
+
+  a {
+    @apply text-inherit no-underline;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl border border-white/[0.08] bg-surface-1 p-4;
+  }
+
+  .card-hover {
+    @apply card transition-colors hover:border-white/[0.12] hover:bg-surface-2;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-2 rounded-full border border-white/[0.10] bg-white/[0.04] px-2.5 py-1.5 text-xs;
+  }
+
+  .dot {
+    @apply h-2 w-2 rounded-full bg-slate-500;
+  }
+
+  .dot-ok {
+    @apply bg-green-500;
+  }
+
+  .dot-bad {
+    @apply bg-red-500;
+  }
+
+  .page-title {
+    @apply text-2xl font-semibold tracking-tight text-white mb-4;
+  }
+
+  .page-subtitle {
+    @apply text-sm text-gray-400 -mt-3 mb-6;
+  }
+
+  .btn {
+    @apply inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors;
+  }
+
+  .btn-primary {
+    @apply btn bg-accent text-white hover:bg-accent-muted;
+  }
+
+  .btn-ghost {
+    @apply btn text-gray-300 hover:bg-white/[0.06];
+  }
+
+  .btn-danger {
+    @apply btn text-red-400 hover:bg-red-500/10;
+  }
+
+  .input {
+    @apply w-full rounded-lg border border-white/[0.08] bg-surface-2 px-3 py-2 text-sm text-gray-200 placeholder-gray-500 outline-none transition-colors focus:border-accent/50 focus:ring-1 focus:ring-accent/25;
+  }
+
+  .label {
+    @apply block text-xs font-medium text-gray-400 mb-1.5;
+  }
+
+  .select {
+    @apply input appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22%236b7280%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%222%22%20d%3D%22M19%209l-7%207-7-7%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1rem] bg-[right_0.5rem_center] bg-no-repeat pr-8;
+  }
+}
