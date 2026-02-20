@@ -8,21 +8,23 @@ interface Agent {
   role: string;
   tier: 'you' | 'free' | 'cheap' | 'mid' | 'future';
   cost: string;
-  responsibilities: string;
+  description: string;
   status: 'active' | 'pending' | 'future';
-  dailyRuns: string;
+  dailyBudget: string;
+  tools: string[];
 }
 
 const AGENTS: Agent[] = [
   {
     id: 'you',
     name: 'You',
-    role: 'Operator',
+    role: 'Human Operator',
     tier: 'you',
-    cost: 'Your time',
-    responsibilities: 'Strategy, approve leads, send proposals, client relationships. The human in the loop.',
+    cost: 'Time',
+    description: 'Strategy, approve leads, send proposals, own client relationships. The decision maker.',
     status: 'active',
-    dailyRuns: 'Continuous',
+    dailyBudget: 'Variable',
+    tools: ['Mission Control', 'Upwork', 'Email'],
   },
   {
     id: 'sourcer',
@@ -30,9 +32,10 @@ const AGENTS: Agent[] = [
     role: 'Job Finder',
     tier: 'cheap',
     cost: '$0.02/run',
-    responsibilities: 'Scans Upwork every 30min. Finds 20-30 jobs/day. Filters by budget & keywords. Delivers top 5.',
+    description: 'Scans Upwork every 30min. Finds 20-30 jobs/day. Delivers top 5 to your inbox.',
     status: 'active',
-    dailyRuns: '~20 runs',
+    dailyBudget: '~$0.40',
+    tools: ['Browser', 'Web Search', 'Upwork API'],
   },
   {
     id: 'qualifier',
@@ -40,19 +43,21 @@ const AGENTS: Agent[] = [
     role: 'Evaluator',
     tier: 'cheap',
     cost: '$0.02/run',
-    responsibilities: 'Scores jobs 60+/100. Checks client rating, payment verified, scope estimate. Go/No-Go.',
+    description: 'Scores jobs 60+/100. Checks client rating, budget fit, complexity. Go/No-Go.',
     status: 'active',
-    dailyRuns: '~10 runs',
+    dailyBudget: '~$0.20',
+    tools: ['Memory DB', 'Client Research'],
   },
   {
     id: 'proposal',
-    name: 'Proposal Writer',
-    role: 'Drafter',
+    name: 'Proposal',
+    role: 'Writer',
     tier: 'mid',
     cost: '$0.10/run',
-    responsibilities: 'Generates 3 proposal variants from templates. You edit & personalize before sending.',
+    description: 'Generates 3 proposal variants from templates. You edit before sending.',
     status: 'active',
-    dailyRuns: '~3 runs',
+    dailyBudget: '~$0.30',
+    tools: ['Templates', 'Memory', 'Context'],
   },
   {
     id: 'builder',
@@ -60,19 +65,21 @@ const AGENTS: Agent[] = [
     role: 'Developer',
     tier: 'future',
     cost: '$0.30/run',
-    responsibilities: 'FULLY AUTOMATED build in Make/Zapier/Airtable. Only activate after $3k MRR.',
+    description: 'Full automation build in Make/Zapier/Airtable. Activates after $3k MRR.',
     status: 'future',
-    dailyRuns: 'Locked until profitable',
+    dailyBudget: 'Locked',
+    tools: ['Make', 'Zapier', 'Airtable', 'n8n'],
   },
   {
     id: 'qa',
-    name: 'QA Tester',
-    role: 'Verifier',
+    name: 'QA',
+    role: 'Tester',
     tier: 'future',
     cost: '$0.20/run',
-    responsibilities: 'Tests edge cases, checks permissions, produces QA report. Part of full automation.',
+    description: 'Tests edge cases, verifies permissions, produces QA reports.',
     status: 'future',
-    dailyRuns: 'Locked until profitable',
+    dailyBudget: 'Locked',
+    tools: ['Test Suites', 'Exec', 'Browser'],
   },
   {
     id: 'nurture',
@@ -80,9 +87,10 @@ const AGENTS: Agent[] = [
     role: 'Retention',
     tier: 'future',
     cost: '$0.05/run',
-    responsibilities: 'Follow-ups, check-ins, client retention. Automated relationship management.',
+    description: 'Follow-ups, check-ins, client retention. Automated relationship management.',
     status: 'future',
-    dailyRuns: 'Locked until profitable',
+    dailyBudget: 'Locked',
+    tools: ['Email', 'Calendar', 'CRM'],
   },
   {
     id: 'content',
@@ -90,33 +98,61 @@ const AGENTS: Agent[] = [
     role: 'Marketing',
     tier: 'future',
     cost: '$0.05/run',
-    responsibilities: 'Turns deliveries into LinkedIn posts, case studies, marketing content.',
+    description: 'Turns deliveries into LinkedIn posts, case studies, marketing content.',
     status: 'future',
-    dailyRuns: 'Locked until profitable',
+    dailyBudget: 'Locked',
+    tools: ['Memory', 'Templates', 'Social'],
   },
 ];
 
-const TIER_COLORS: Record<string, string> = {
-  you: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
-  free: 'bg-gray-500/20 text-gray-300 border-gray-500/30',
-  cheap: 'bg-green-500/20 text-green-300 border-green-500/30',
-  mid: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-  future: 'bg-amber-500/10 text-amber-300/50 border-amber-500/20',
-};
-
-const TIER_LABELS: Record<string, string> = {
-  you: 'You',
-  free: 'Free',
-  cheap: 'Cheap ($0.02)',
-  mid: 'Mid ($0.10)',
-  future: 'Future ($0.20-0.30)',
+const TIER_STYLES: Record<string, { bg: string; border: string; text: string; dot: string }> = {
+  you: {
+    bg: 'bg-purple-500/10',
+    border: 'border-purple-500/20',
+    text: 'text-purple-300',
+    dot: 'bg-purple-500',
+  },
+  cheap: {
+    bg: 'bg-emerald-500/10',
+    border: 'border-emerald-500/20',
+    text: 'text-emerald-300',
+    dot: 'bg-emerald-500',
+  },
+  mid: {
+    bg: 'bg-blue-500/10',
+    border: 'border-blue-500/20',
+    text: 'text-blue-300',
+    dot: 'bg-blue-500',
+  },
+  future: {
+    bg: 'bg-amber-500/5',
+    border: 'border-amber-500/10',
+    text: 'text-amber-300/60',
+    dot: 'bg-amber-500/40',
+  },
 };
 
 function getInitials(name: string) {
   return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
 }
 
-export default function CleanArchitecturePage() {
+function getAvatarGradient(name: string) {
+  const gradients = [
+    'from-violet-500 to-purple-600',
+    'from-emerald-400 to-teal-500',
+    'from-blue-400 to-indigo-500',
+    'from-amber-400 to-orange-500',
+    'from-rose-400 to-pink-500',
+    'from-cyan-400 to-blue-500',
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return gradients[Math.abs(hash) % gradients.length];
+}
+
+export default function ArchitecturePage() {
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   
   const activeAgents = AGENTS.filter(a => a.status === 'active');
@@ -125,181 +161,217 @@ export default function CleanArchitecturePage() {
   const dailyCost = activeAgents
     .filter(a => a.tier !== 'you')
     .reduce((sum, a) => {
-      const cost = parseFloat(a.cost.replace('$', '').replace('/run', ''));
-      const runs = parseInt(a.dailyRuns.replace(/[^0-9]/g, '')) || 0;
+      const costMatch = a.cost.match(/\$([0-9.]+)/);
+      const cost = costMatch ? parseFloat(costMatch[1]) : 0;
+      const runs = a.tier === 'cheap' ? 10 : 3;
       return sum + (cost * runs);
     }, 0);
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-2">
-        <div>
-          <h1 className="page-title mb-0">Agent Architecture</h1>
-          <p className="text-sm text-gray-500">
-            {activeAgents.length} active agents, {futureAgents.length} future agents
-          </p>
-        </div>
-        <div className="flex items-center gap-4 text-xs">
-          <div className="px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/20">
-            <span className="text-gray-400">Daily Cost: </span>
-            <span className="text-green-400 font-bold">${dailyCost.toFixed(2)}</span>
-          </div>
-          <div className="px-3 py-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
-            <span className="text-gray-400">Monthly: </span>
-            <span className="text-blue-400 font-bold">${(dailyCost * 30).toFixed(0)}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Workflow Summary */}
-      <div className="card mb-6">
-        <h3 className="text-sm font-semibold text-white mb-3">Workflow</h3>
-        <div className="flex flex-wrap items-center gap-2 text-sm">
-          <span className="px-3 py-1.5 rounded-lg bg-purple-500/20 text-purple-300">You</span>
-          <span className="text-gray-500">→</span>
-          <span className="px-3 py-1.5 rounded-lg bg-green-500/20 text-green-300">Sourcer finds jobs</span>
-          <span className="text-gray-500">→</span>
-          <span className="px-3 py-1.5 rounded-lg bg-green-500/20 text-green-300">Qualifier scores</span>
-          <span className="text-gray-500">→</span>
-          <span className="text-amber-400 font-medium">You approve</span>
-          <span className="text-gray-500">→</span>
-          <span className="px-3 py-1.5 rounded-lg bg-blue-500/20 text-blue-300">Proposal drafts</span>
-          <span className="text-gray-500">→</span>
-          <span className="text-amber-400 font-medium">You send</span>
-          <span className="text-gray-500">→</span>
-          <span className="px-3 py-1.5 rounded-lg bg-pink-500/20 text-pink-300">Client</span>
-        </div>
-        <p className="text-xs text-gray-500 mt-3">
-          You control every external action. AI assists, you decide. Zero risk of runaway costs.
+    <div className="max-w-6xl mx-auto">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-semibold text-white mb-2">Agent Architecture</h1>
+        <p className="text-sm text-gray-400">
+          {activeAgents.length} active agents • {futureAgents.length} future agents
         </p>
       </div>
 
-      {/* Active Agents */}
-      <h2 className="text-lg font-semibold text-white mb-3">Active Agents</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-        {activeAgents.map(agent => (
-          <div 
-            key={agent.id}
-            className="card-hover group cursor-pointer"
-            onClick={() => setSelectedAgent(agent)}
-          >
-            <div className="flex items-start gap-3">
-              <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold ${TIER_COLORS[agent.tier]}`}>
-                {getInitials(agent.name)}
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-semibold text-white">{agent.name}</h3>
-                <p className="text-xs text-gray-400">{agent.role}</p>
-              </div>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full border ${TIER_COLORS[agent.tier]}`}>
-                {TIER_LABELS[agent.tier]}
-              </span>
-            </div>
-            <p className="mt-3 text-xs text-gray-400 line-clamp-2">{agent.responsibilities}</p>
-            <div className="mt-3 flex items-center justify-between text-xs">
-              <span className="text-gray-500">{agent.cost}</span>
-              <span className="text-gray-500">{agent.dailyRuns}</span>
-            </div>
+      {/* Stats Row */}
+      <div className="grid grid-cols-4 gap-4 mb-8">
+        <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
+          <div className="text-xs text-gray-500 mb-1">Daily Cost</div>
+          <div className="text-2xl font-semibold text-emerald-400">${dailyCost.toFixed(2)}</div>
+        </div>
+        <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
+          <div className="text-xs text-gray-500 mb-1">Monthly</div>
+          <div className="text-2xl font-semibold text-blue-400">${(dailyCost * 30).toFixed(0)}</div>
+        </div>
+        <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
+          <div className="text-xs text-gray-500 mb-1">Target MRR</div>
+          <div className="text-2xl font-semibold text-purple-400">$3-5k</div>
+        </div>
+        <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
+          <div className="text-xs text-gray-500 mb-1">Margin</div>
+          <div className="text-2xl font-semibold text-white">98%</div>
+        </div>
+      </div>
+
+      {/* Workflow Diagram */}
+      <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.06] mb-8">
+        <h3 className="text-sm font-medium text-white mb-4">Workflow</h3>
+        <div className="flex items-center gap-2 text-sm overflow-x-auto pb-2">
+          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-300 whitespace-nowrap">
+            <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+            You
           </div>
-        ))}
+          <span className="text-gray-600">→</span>
+          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 whitespace-nowrap">
+            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+            Sourcer
+          </div>
+          <span className="text-gray-600">→</span>
+          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 whitespace-nowrap">
+            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+            Qualifier
+          </div>
+          <span className="text-gray-600">→</span>
+          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-300 whitespace-nowrap">
+            <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+            You Approve
+          </div>
+          <span className="text-gray-600">→</span>
+          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-300 whitespace-nowrap">
+            <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+            Proposal
+          </div>
+          <span className="text-gray-600">→</span>
+          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-300 whitespace-nowrap">
+            <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+            You Send
+          </div>
+          <span className="text-gray-600">→</span>
+          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-pink-500/20 border border-pink-500/30 text-pink-300 whitespace-nowrap">
+            <span className="w-2 h-2 rounded-full bg-pink-500"></span>
+            Client
+          </div>
+        </div>
+      </div>
+
+      {/* Active Agents */}
+      <h2 className="text-lg font-medium text-white mb-4">Active Agents</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {activeAgents.map(agent => {
+          const styles = TIER_STYLES[agent.tier];
+          return (
+            <div
+              key={agent.id}
+              onClick={() => setSelectedAgent(agent)}
+              className={`group p-5 rounded-2xl ${styles.bg} border ${styles.border} cursor-pointer transition-all hover:scale-[1.02] hover:border-opacity-40`}
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${getAvatarGradient(agent.name)} flex items-center justify-center text-white font-semibold shadow-lg`}>
+                  {getInitials(agent.name)}
+                </div>
+                <div className={`w-2 h-2 rounded-full ${styles.dot}`}></div>
+              </div>
+              
+              <h3 className="text-white font-medium mb-1">{agent.name}</h3>
+              <p className={`text-sm ${styles.text} mb-3`}>{agent.role}</p>
+              
+              <p className="text-xs text-gray-400 line-clamp-2 mb-4">{agent.description}</p>
+              
+              <div className="flex items-center justify-between text-xs">
+                <span className={styles.text}>{agent.cost}</span>
+                <span className="text-gray-500">{agent.dailyBudget}</span>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Future Agents */}
-      <h2 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+      <h2 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
         Future Agents
-        <span className="text-xs font-normal text-gray-500">(Unlock after $3k MRR)</span>
+        <span className="text-xs font-normal text-gray-500">Unlock after $3k MRR</span>
       </h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {futureAgents.map(agent => (
-          <div 
-            key={agent.id}
-            className="card opacity-50 hover:opacity-75 transition-opacity cursor-pointer"
-            onClick={() => setSelectedAgent(agent)}
-          >
-            <div className="flex items-start gap-3">
-              <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold ${TIER_COLORS[agent.tier]}`}>
-                {getInitials(agent.name)}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {futureAgents.map(agent => {
+          const styles = TIER_STYLES[agent.tier];
+          return (
+            <div
+              key={agent.id}
+              onClick={() => setSelectedAgent(agent)}
+              className={`group p-5 rounded-2xl ${styles.bg} border ${styles.border} cursor-pointer opacity-60 hover:opacity-80 transition-all`}
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${getAvatarGradient(agent.name)} flex items-center justify-center text-white font-semibold shadow-lg opacity-50`}>
+                  {getInitials(agent.name)}
+                </div>
+                <div className="text-amber-500/40 text-xs">🔒</div>
               </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-semibold text-white">{agent.name}</h3>
-                <p className="text-xs text-gray-400">{agent.role}</p>
-              </div>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full border ${TIER_COLORS[agent.tier]}`}>
-                {TIER_LABELS[agent.tier]}
-              </span>
+              
+              <h3 className="text-white/60 font-medium mb-1">{agent.name}</h3>
+              <p className={`text-sm ${styles.text} mb-3`}>{agent.role}</p>
+              
+              <p className="text-xs text-gray-500 line-clamp-2 mb-4">{agent.description}</p>
+              
+              <div className="text-xs text-amber-500/40">{agent.dailyBudget}</div>
             </div>
-            <p className="mt-3 text-xs text-gray-400 line-clamp-2">{agent.responsibilities}</p>
-            <div className="mt-3 text-xs text-amber-400/70">
-              🔒 {agent.dailyRuns}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Cost Breakdown */}
-      <div className="mt-8 grid grid-cols-3 gap-4">
-        <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/20">
-          <div className="text-xs text-gray-400 mb-1">Cheap Agents</div>
-          <div className="text-lg font-bold text-green-400">$0.80/day</div>
-          <div className="text-xs text-gray-500">Sourcer + Qualifier</div>
-        </div>
-        <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
-          <div className="text-xs text-gray-400 mb-1">Mid Agent</div>
-          <div className="text-lg font-bold text-blue-400">$0.30/day</div>
-          <div className="text-xs text-gray-500">Proposal (3 runs)</div>
-        </div>
-        <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/20">
-          <div className="text-xs text-gray-400 mb-1">Total Daily</div>
-          <div className="text-lg font-bold text-white">${dailyCost.toFixed(2)}</div>
-          <div className="text-xs text-gray-500">~${(dailyCost * 30).toFixed(0)}/month</div>
-        </div>
+          );
+        })}
       </div>
 
       {/* Detail Modal */}
       {selectedAgent && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
           onClick={() => setSelectedAgent(null)}
         >
-          <div 
-            className="w-full max-w-md card"
+          <div
+            className="w-full max-w-md p-6 rounded-2xl bg-[#0f1117] border border-white/[0.08] shadow-2xl"
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-semibold ${TIER_COLORS[selectedAgent.tier]}`}>
+            <div className="flex items-start justify-between mb-6">
+              <div className="flex items-center gap-4">
+                <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${getAvatarGradient(selectedAgent.name)} flex items-center justify-center text-white text-xl font-semibold shadow-lg`}>
                   {getInitials(selectedAgent.name)}
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-white">{selectedAgent.name}</h3>
-                  <p className="text-sm text-gray-400">{selectedAgent.role}</p>
+                  <h3 className="text-xl font-semibold text-white">{selectedAgent.name}</h3>
+                  <p className={`text-sm ${TIER_STYLES[selectedAgent.tier].text}`}>{selectedAgent.role}</p>
                 </div>
               </div>
-              <button onClick={() => setSelectedAgent(null)} className="text-gray-500 hover:text-white">✕</button>
+              <button
+                onClick={() => setSelectedAgent(null)}
+                className="text-gray-500 hover:text-white transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-            
-            <div className={`inline-block px-3 py-1 rounded-full text-xs border mb-4 ${TIER_COLORS[selectedAgent.tier]}`}>
-              {TIER_LABELS[selectedAgent.tier]}
+
+            <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full ${TIER_STYLES[selectedAgent.tier].bg} border ${TIER_STYLES[selectedAgent.tier].border} mb-4`}>
+              <span className={`w-2 h-2 rounded-full ${TIER_STYLES[selectedAgent.tier].dot}`}></span>
+              <span className={`text-xs ${TIER_STYLES[selectedAgent.tier].text}`}>
+                {selectedAgent.tier === 'you' ? 'Human Operator' : selectedAgent.tier === 'cheap' ? 'Cheap Agent' : selectedAgent.tier === 'mid' ? 'Mid Agent' : 'Future Agent'}
+              </span>
             </div>
-            
-            <p className="text-sm text-gray-300 mb-4">{selectedAgent.responsibilities}</p>
-            
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-gray-500 block text-xs">Cost</span>
-                <span className={selectedAgent.tier === 'cheap' ? 'text-green-400' : selectedAgent.tier === 'mid' ? 'text-blue-400' : 'text-gray-400'}>
-                  {selectedAgent.cost}
-                </span>
+
+            <p className="text-gray-300 text-sm mb-6 leading-relaxed">{selectedAgent.description}</p>
+
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="p-3 rounded-xl bg-white/[0.03]">
+                <div className="text-xs text-gray-500 mb-1">Cost</div>
+                <div className={TIER_STYLES[selectedAgent.tier].text}>{selectedAgent.cost}</div>
               </div>
-              <div>
-                <span className="text-gray-500 block text-xs">Daily Runs</span>
-                <span className="text-gray-300">{selectedAgent.dailyRuns}</span>
+              <div className="p-3 rounded-xl bg-white/[0.03]">
+                <div className="text-xs text-gray-500 mb-1">Daily Budget</div>
+                <div className="text-gray-300">{selectedAgent.dailyBudget}</div>
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <div className="text-xs text-gray-500 mb-2">Tools</div>
+              <div className="flex flex-wrap gap-2">
+                {selectedAgent.tools.map(tool => (
+                  <span key={tool} className="px-2.5 py-1 rounded-lg bg-white/[0.05] text-xs text-gray-400">
+                    {tool}
+                  </span>
+                ))}
               </div>
             </div>
 
             {selectedAgent.status === 'future' && (
-              <div className="mt-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300">
-                🔒 Unlock after hitting $3,000 MRR. This agent enables full automation.
+              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                <div className="flex items-center gap-2 text-amber-400 text-sm mb-1">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  <span className="font-medium">Locked</span>
+                </div>
+                <p className="text-xs text-amber-400/70">Activate after reaching $3,000 MRR. This enables full automation.</p>
               </div>
             )}
           </div>
