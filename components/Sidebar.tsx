@@ -13,6 +13,7 @@ const nav = [
   { href: '/calendar', label: 'Calendar', icon: '▦' },
   { href: '/memory', label: 'Memory', icon: '◉' },
   { href: '/team', label: 'Team', icon: '⊕' },
+  { href: '/org-chart', label: 'Org Chart', icon: '⬡' },
   { href: '/doctor', label: 'Doctor', icon: '⚕' },
 ];
 
