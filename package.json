@@ -12,12 +12,17 @@
     "setup": "bash scripts/setup.sh"
   },
   "dependencies": {
+    "@reactflow/background": "^11.3.14",
+    "@reactflow/controls": "^11.2.14",
+    "@reactflow/core": "^11.11.4",
+    "@reactflow/minimap": "^11.7.14",
     "autoprefixer": "^10.4.24",
     "better-sqlite3": "^12.6.2",
     "next": "15.5.12",
     "postcss": "^8.5.6",
     "react": "19.1.1",
     "react-dom": "19.1.1",
+    "reactflow": "^11.11.4",
     "tailwindcss": "^3.4.19"
   },
   "devDependencies": {

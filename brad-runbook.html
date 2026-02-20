@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mission Control + OpenClaw Runbook (Mac mini)</title>
+  <style>
+    :root{--text:#0b1220;--muted:#4b5563;--border:#e5e7eb;--bg:#ffffff;--codebg:#0b1220;--codefg:#e5e7eb;}
+    html,body{background:var(--bg);color:var(--text);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;line-height:1.45;}
+    .page{max-width:900px;margin:40px auto;padding:0 18px;}
+    h1{font-size:28px;margin:0 0 6px 0;letter-spacing:-0.02em;}
+    h2{font-size:18px;margin:28px 0 8px 0;}
+    h3{font-size:14px;margin:18px 0 6px 0;color:#111827;}
+    p{margin:8px 0;color:var(--text)}
+    .meta{color:var(--muted);font-size:12px;margin-bottom:18px;}
+    .hr{height:1px;background:var(--border);margin:18px 0;}
+    .callout{border:1px solid var(--border);border-radius:12px;padding:14px 14px;background:#fafafa;}
+    .callout strong{display:inline-block;margin-bottom:6px;}
+    ul{margin:8px 0 8px 18px;}
+    li{margin:4px 0;}
+    pre{background:var(--codebg);color:var(--codefg);padding:12px 12px;border-radius:12px;overflow:auto;font-size:12px;}
+    code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;}
+    .small{font-size:12px;color:var(--muted)}
+    @media print{.page{margin:0;max-width:none} pre{page-break-inside:avoid}}
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1>Mission Control + OpenClaw Runbook (Mac mini)</h1>
+    <div class="meta">Owner: Brad &nbsp;|&nbsp; Maintainer: Zed &nbsp;|&nbsp; Scope: Day-2 operations (OpenClaw + MissionControlUpdated already installed)</div>
+
+    <div class="callout">
+      <strong>TL;DR (Quick Start)</strong>
+      <div class="small">Use these in order when you want the whole system up quickly.</div>
+      <h3>Start OpenClaw Gateway</h3>
+      <pre><code>openclaw gateway status
+openclaw gateway start
+openclaw gateway status</code></pre>
+      <h3>Start Mission Control</h3>
+      <pre><code>cd ~/MissionControlUpdated
+./scripts/setup.sh
+npm run dev</code></pre>
+      <h3>Open the dashboard</h3>
+      <ul>
+        <li>Open the URL printed in Terminal (usually <code>http://127.0.0.1:3000</code>).</li>
+      </ul>
+      <h3>Primary workflow</h3>
+      <ul>
+        <li>Mission Control → Tasks → create task → Dispatch → move status</li>
+      </ul>
+      <h3>If Mission Control errors (Next.js ENOENT)</h3>
+      <pre><code>cd ~/MissionControlUpdated
+rm -rf .next
+npm run dev</code></pre>
+    </div>
+
+    <div class="hr"></div>
+
+    <h2>1) What this system is</h2>
+    <h3>Components</h3>
+    <ul>
+      <li><strong>OpenClaw</strong>: local agent runtime + Gateway.</li>
+      <li><strong>Mission Control</strong>: local dashboard for Operations, Tasks, Content, Memory, Team.</li>
+      <li><strong>Dispatch</strong>: sends a task to OpenClaw via local system event (with cooldown).</li>
+    </ul>
+
+    <h3>Security model</h3>
+    <ul>
+      <li>Local-only (binds to 127.0.0.1 by default).</li>
+      <li>No public exposure.</li>
+      <li>OpenClaw Control UI may require a Gateway token.</li>
+    </ul>
+
+    <h2>2) Where everything lives</h2>
+    <h3>Mission Control repo</h3>
+    <pre><code>cd ~/MissionControlUpdated
+pwd</code></pre>
+
+    <h3>OpenClaw Control UI URL</h3>
+    <pre><code>openclaw status</code></pre>
+    <p class="small">Look for: “Dashboard: http://127.0.0.1:18789/” (example).</p>
+
+    <h2>3) Start, stop, restart (common operations)</h2>
+
+    <h3>A) Mission Control</h3>
+    <p><strong>Start (recommended)</strong></p>
+    <pre><code>cd ~/MissionControlUpdated
+./scripts/setup.sh
+npm run dev</code></pre>
+
+    <p><strong>Start (fast)</strong></p>
+    <pre><code>cd ~/MissionControlUpdated
+npm run dev</code></pre>
+
+    <p><strong>Stop</strong></p>
+    <ul>
+      <li>In the terminal where Mission Control is running: press Ctrl+C</li>
+    </ul>
+
+    <h3>B) OpenClaw Gateway</h3>
+    <p><strong>Check status</strong></p>
+    <pre><code>openclaw gateway status</code></pre>
+
+    <p><strong>Start</strong></p>
+    <pre><code>openclaw gateway start
+openclaw gateway status</code></pre>
+
+    <p><strong>Restart (when stuck)</strong></p>
+    <pre><code>openclaw gateway restart
+openclaw gateway status</code></pre>
+
+    <h2>4) Using Mission Control (how to actually work)</h2>
+
+    <h3>Operations tab</h3>
+    <ul>
+      <li>Check Mission Control health.</li>
+      <li>Confirm OpenClaw Gateway is reachable and running.</li>
+    </ul>
+
+    <h3>Tasks tab (primary workflow)</h3>
+    <ul>
+      <li>Create tasks.</li>
+      <li>Move tasks across: Backlog → In Progress → Blocked → Done.</li>
+      <li>Dispatch: click Dispatch on a task card (cooldown prevents spam).</li>
+    </ul>
+
+    <h3>Marketing and Research tabs</h3>
+    <ul>
+      <li>Phase 1 placeholders that route into Content Pipeline and Memory.</li>
+    </ul>
+
+    <h2>5) OpenClaw command cheat sheet</h2>
+
+    <h3>Core health</h3>
+    <pre><code>openclaw status
+openclaw gateway status
+openclaw health</code></pre>
+
+    <h3>Logs</h3>
+    <pre><code>openclaw logs
+openclaw logs --follow</code></pre>
+
+    <h3>Sessions</h3>
+    <pre><code>openclaw sessions
+openclaw sessions --json</code></pre>
+
+    <h3>Security audits</h3>
+    <pre><code>openclaw security audit
+openclaw security audit --deep</code></pre>
+
+    <h3>Cron (scheduled jobs)</h3>
+    <pre><code>openclaw cron list
+openclaw cron runs &lt;jobId&gt;
+openclaw cron run &lt;jobId&gt;</code></pre>
+
+    <h2>6) Troubleshooting (most common issues)</h2>
+
+    <h3>Issue A: “Unauthorized / gateway token missing”</h3>
+    <p>Fix:</p>
+    <ol>
+      <li>Get the dashboard URL: <code>openclaw status</code></li>
+      <li>Open that URL (example: <code>http://127.0.0.1:18789/</code>)</li>
+      <li>Settings → copy Gateway token → paste where prompted</li>
+    </ol>
+
+    <h3>Issue B: Next.js ENOENT about .next/server</h3>
+    <p>Fix:</p>
+    <pre><code>cd ~/MissionControlUpdated
+rm -rf .next
+npm run dev</code></pre>
+
+    <h3>Issue C: OpenClaw fails due to Node version</h3>
+    <pre><code>node -v
+which node
+which -a node</code></pre>
+    <p class="small">OpenClaw requires Node >= 22.12.0.</p>
+
+    <h2>7) What to send Zed if something breaks</h2>
+    <p>Copy/paste outputs of:</p>
+    <pre><code>openclaw status
+openclaw gateway status
+openclaw logs</code></pre>
+    <p class="small">Also include which Mission Control URL/port you were using and which page failed.</p>
+  </div>
+</body>
+</html>
