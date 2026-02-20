@@ -15,6 +15,7 @@ const nav = [
   { href: '/team', label: 'Team', icon: '⊕' },
   { href: '/org-chart', label: 'Org Chart', icon: '⬡' },
   { href: '/architecture-flow', label: 'Bootstrap Arch', icon: '⛵' },
+  { href: '/rss-manager', label: 'RSS Feeds', icon: '📡' },
   { href: '/doctor', label: 'Doctor', icon: '⚕' },
 ];
 
