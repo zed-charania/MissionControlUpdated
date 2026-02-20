@@ -14,6 +14,7 @@ const nav = [
   { href: '/memory', label: 'Memory', icon: '◉' },
   { href: '/team', label: 'Team', icon: '⊕' },
   { href: '/org-chart', label: 'Org Chart', icon: '⬡' },
+  { href: '/architecture-flow', label: 'Live Flow', icon: '⟿' },
   { href: '/doctor', label: 'Doctor', icon: '⚕' },
 ];
 
