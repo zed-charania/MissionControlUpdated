@@ -1,290 +1,310 @@
 'use client';
 
-import { useCallback, useState } from 'react';
-import ReactFlow, {
-  Background,
-  Controls,
-  MiniMap,
-  addEdge,
-  useNodesState,
-  useEdgesState,
-  Node,
-  Edge,
-  Connection,
-  Panel,
-} from 'reactflow';
-import 'reactflow/dist/style.css';
+import { useState } from 'react';
 
-// Bootstrapped architecture - minimal cost, maximum output
+interface Agent {
+  id: string;
+  name: string;
+  role: string;
+  tier: 'you' | 'free' | 'cheap' | 'mid' | 'future';
+  cost: string;
+  responsibilities: string;
+  status: 'active' | 'pending' | 'future';
+  dailyRuns: string;
+}
 
-const nodeTypes = {
-  you: YouNode,
-  manual: ManualNode,
-  auto: AutoNode,
-  tool: ToolNode,
-  external: ExternalNode,
+const AGENTS: Agent[] = [
+  {
+    id: 'you',
+    name: 'You',
+    role: 'Operator',
+    tier: 'you',
+    cost: 'Your time',
+    responsibilities: 'Strategy, approve leads, send proposals, client relationships. The human in the loop.',
+    status: 'active',
+    dailyRuns: 'Continuous',
+  },
+  {
+    id: 'sourcer',
+    name: 'Sourcer',
+    role: 'Job Finder',
+    tier: 'cheap',
+    cost: '$0.02/run',
+    responsibilities: 'Scans Upwork every 30min. Finds 20-30 jobs/day. Filters by budget & keywords. Delivers top 5.',
+    status: 'active',
+    dailyRuns: '~20 runs',
+  },
+  {
+    id: 'qualifier',
+    name: 'Qualifier',
+    role: 'Evaluator',
+    tier: 'cheap',
+    cost: '$0.02/run',
+    responsibilities: 'Scores jobs 60+/100. Checks client rating, payment verified, scope estimate. Go/No-Go.',
+    status: 'active',
+    dailyRuns: '~10 runs',
+  },
+  {
+    id: 'proposal',
+    name: 'Proposal Writer',
+    role: 'Drafter',
+    tier: 'mid',
+    cost: '$0.10/run',
+    responsibilities: 'Generates 3 proposal variants from templates. You edit & personalize before sending.',
+    status: 'active',
+    dailyRuns: '~3 runs',
+  },
+  {
+    id: 'builder',
+    name: 'Builder',
+    role: 'Developer',
+    tier: 'future',
+    cost: '$0.30/run',
+    responsibilities: 'FULLY AUTOMATED build in Make/Zapier/Airtable. Only activate after $3k MRR.',
+    status: 'future',
+    dailyRuns: 'Locked until profitable',
+  },
+  {
+    id: 'qa',
+    name: 'QA Tester',
+    role: 'Verifier',
+    tier: 'future',
+    cost: '$0.20/run',
+    responsibilities: 'Tests edge cases, checks permissions, produces QA report. Part of full automation.',
+    status: 'future',
+    dailyRuns: 'Locked until profitable',
+  },
+  {
+    id: 'nurture',
+    name: 'Nurture',
+    role: 'Retention',
+    tier: 'future',
+    cost: '$0.05/run',
+    responsibilities: 'Follow-ups, check-ins, client retention. Automated relationship management.',
+    status: 'future',
+    dailyRuns: 'Locked until profitable',
+  },
+  {
+    id: 'content',
+    name: 'Content',
+    role: 'Marketing',
+    tier: 'future',
+    cost: '$0.05/run',
+    responsibilities: 'Turns deliveries into LinkedIn posts, case studies, marketing content.',
+    status: 'future',
+    dailyRuns: 'Locked until profitable',
+  },
+];
+
+const TIER_COLORS: Record<string, string> = {
+  you: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+  free: 'bg-gray-500/20 text-gray-300 border-gray-500/30',
+  cheap: 'bg-green-500/20 text-green-300 border-green-500/30',
+  mid: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+  future: 'bg-amber-500/10 text-amber-300/50 border-amber-500/20',
 };
 
-function YouNode({ data }: { data: any }) {
-  return (
-    <div className="px-4 py-2 rounded-xl bg-gradient-to-br from-purple-600 to-purple-800 text-white border-2 border-purple-400 shadow-lg">
-      <div className="text-xs opacity-70">Human Operator</div>
-      <div className="font-bold">{data.label}</div>
-      <div className="text-xs mt-1">Strategy + Orchestration</div>
-    </div>
-  );
+const TIER_LABELS: Record<string, string> = {
+  you: 'You',
+  free: 'Free',
+  cheap: 'Cheap ($0.02)',
+  mid: 'Mid ($0.10)',
+  future: 'Future ($0.20-0.30)',
+};
+
+function getInitials(name: string) {
+  return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
 }
 
-function ManualNode({ data }: { data: any }) {
-  return (
-    <div className="px-3 py-2 rounded-xl bg-gradient-to-br from-amber-600 to-amber-800 text-white border-2 border-amber-400 shadow-lg">
-      <div className="text-[10px] opacity-70">Manual Step</div>
-      <div className="font-bold text-sm">{data.label}</div>
-      <div className="text-[10px] mt-1">You approve</div>
-    </div>
-  );
-}
-
-function AutoNode({ data }: { data: any }) {
-  const costColors = {
-    free: 'from-gray-600 to-gray-800 border-gray-400',
-    cheap: 'from-green-600 to-green-800 border-green-400',
-    mid: 'from-blue-600 to-blue-800 border-blue-400',
-  };
+export default function CleanArchitecturePage() {
+  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   
-  return (
-    <div className={`px-3 py-2 rounded-xl bg-gradient-to-br ${costColors[data.cost as keyof typeof costColors]} text-white border-2 shadow-lg`}>
-      <div className="text-[10px] opacity-70">{data.cost === 'free' ? 'Scripts' : 'Kimi Agent'}</div>
-      <div className="font-bold text-sm">{data.label}</div>
-      <div className="text-[10px] mt-1">{data.price}</div>
-    </div>
-  );
-}
-
-function ToolNode({ data }: { data: any }) {
-  return (
-    <div className="px-3 py-2 rounded-xl bg-gradient-to-br from-cyan-600 to-cyan-800 text-white border-2 border-cyan-400 shadow-lg">
-      <div className="text-[10px] opacity-70">Tool</div>
-      <div className="font-bold text-sm">{data.label}</div>
-    </div>
-  );
-}
-
-function ExternalNode({ data }: { data: any }) {
-  return (
-    <div className="px-3 py-2 rounded-xl bg-gradient-to-br from-pink-600 to-pink-800 text-white border-2 border-pink-400 shadow-lg">
-      <div className="text-[10px] opacity-70">External</div>
-      <div className="font-bold text-sm">{data.label}</div>
-    </div>
-  );
-}
-
-// Bootstrapped: 3-phase rollout
-
-const initialNodes: Node[] = [
-  // Phase 1: Manual (Week 1-2) - You do everything
-  { id: 'you', type: 'you', position: { x: 400, y: 0 }, data: { label: 'You (Zed)' } },
+  const activeAgents = AGENTS.filter(a => a.status === 'active');
+  const futureAgents = AGENTS.filter(a => a.status === 'future');
   
-  // Phase 2: Semi-Auto (Week 3-4) - Kimi drafts, you approve
-  { id: 'sourcer', type: 'auto', position: { x: 100, y: 120 }, data: { label: 'Sourcer', cost: 'cheap', price: '$0.02/run' } },
-  { id: 'qualifier', type: 'auto', position: { x: 300, y: 120 }, data: { label: 'Qualifier', cost: 'cheap', price: '$0.02/run' } },
-  { id: 'draft-proposal', type: 'auto', position: { x: 500, y: 120 }, data: { label: 'Draft Proposal', cost: 'mid', price: '$0.10/run' } },
-  
-  // Approval gates (you control)
-  { id: 'approve-leads', type: 'manual', position: { x: 200, y: 220 }, data: { label: 'Approve Leads' } },
-  { id: 'approve-proposal', type: 'manual', position: { x: 500, y: 220 }, data: { label: 'Send Proposal' } },
-  
-  // Phase 3: Full Auto (Month 2+) - Only when profitable
-  { id: 'builder', type: 'auto', position: { x: 400, y: 320 }, data: { label: 'Builder (Future)', cost: 'mid', price: '$0.30/run' } },
-  
-  // Tools
-  { id: 'upwork-api', type: 'tool', position: { x: 100, y: 440 }, data: { label: 'Upwork API/Scrape' } },
-  { id: 'templates', type: 'tool', position: { x: 300, y: 440 }, data: { label: 'Proposal Templates' } },
-  { id: 'make', type: 'tool', position: { x: 400, y: 440 }, data: { label: 'Make/Zapier' } },
-  
-  // External
-  { id: 'upwork', type: 'external', position: { x: 100, y: 560 }, data: { label: 'Upwork Jobs' } },
-  { id: 'client', type: 'external', position: { x: 400, y: 560 }, data: { label: 'Client' } },
-];
-
-const initialEdges: Edge[] = [
-  // You initiate
-  { id: 'e1', source: 'you', target: 'sourcer', animated: true, style: { stroke: '#8b5cf6' }, label: 'Daily: Find jobs' },
-  
-  // Sourcer → Upwork
-  { id: 'e2', source: 'sourcer', target: 'upwork-api', style: { stroke: '#22c55e' } },
-  { id: 'e3', source: 'upwork-api', target: 'upwork', style: { stroke: '#ec4899' } },
-  
-  // Results → You approve
-  { id: 'e4', source: 'sourcer', target: 'qualifier', style: { stroke: '#22c55e' } },
-  { id: 'e5', source: 'qualifier', target: 'approve-leads', style: { stroke: '#22c55e' }, label: 'Top 5 leads' },
-  { id: 'e6', source: 'approve-leads', target: 'you', style: { stroke: '#f59e0b', strokeDasharray: '5,5' }, label: 'You pick 2-3' },
-  
-  // You → Draft proposal
-  { id: 'e7', source: 'you', target: 'draft-proposal', style: { stroke: '#8b5cf6' }, label: 'Draft for me' },
-  { id: 'e8', source: 'draft-proposal', target: 'templates', style: { stroke: '#3b82f6' } },
-  { id: 'e9', source: 'draft-proposal', target: 'approve-proposal', style: { stroke: '#3b82f6' }, label: '3 variants' },
-  
-  // You send
-  { id: 'e10', source: 'approve-proposal', target: 'you', style: { stroke: '#f59e0b', strokeDasharray: '5,5' }, label: 'You edit & send' },
-  { id: 'e11', source: 'you', target: 'client', style: { stroke: '#ec4899', strokeWidth: 2 }, label: 'External: Upwork' },
-  
-  // Future: Builder (Month 2+)
-  { id: 'e12', source: 'you', target: 'builder', style: { stroke: '#6b7280', strokeDasharray: '10,5' }, label: 'Month 2+' },
-  { id: 'e13', source: 'builder', target: 'make', style: { stroke: '#6b7280', strokeDasharray: '10,5' } },
-  { id: 'e14', source: 'builder', target: 'client', style: { stroke: '#6b7280', strokeDasharray: '10,5' } },
-];
-
-export default function BootstrapArchitecturePage() {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const [selectedNode, setSelectedNode] = useState<string | null>(null);
-  const [phase, setPhase] = useState(1);
-
-  const onConnect = useCallback(
-    (params: Connection) => setEdges((eds) => addEdge(params, eds)),
-    [setEdges]
-  );
-
-  const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
-    setSelectedNode(node.id);
-  }, []);
-
-  const nodeInfo: Record<string, { title: string; desc: string; cost: string; phase: number }> = {
-    you: { title: 'You (Zed)', desc: 'Orchestrator. Make strategic decisions, approve proposals, own client relationships.', cost: 'Your time', phase: 1 },
-    sourcer: { title: 'Sourcer Agent (Kimi)', desc: 'Finds 20-30 Upwork jobs daily. Runs every morning. Filters by budget + keywords.', cost: '$0.02/run (~$0.60/day)', phase: 2 },
-    qualifier: { title: 'Qualifier Agent (Kimi)', desc: 'Scores jobs 60+/100. Checks client rating, budget fit, complexity estimate.', cost: '$0.02/run (~$0.40/day)', phase: 2 },
-    'draft-proposal': { title: 'Draft Proposal (Kimi)', desc: 'Generates 3 proposal variants from templates. You edit before sending.', cost: '$0.10/run (~$0.30/day)', phase: 2 },
-    'approve-leads': { title: 'Approve Leads (Manual)', desc: 'Review Kimi\'s top 5 picks. Pick 2-3 to pursue. 5 min/day.', cost: 'Free (your time)', phase: 2 },
-    'approve-proposal': { title: 'Send Proposal (Manual)', desc: 'Edit Kimi\'s draft, personalize, click send. 10 min/proposal.', cost: 'Free (your time)', phase: 2 },
-    builder: { title: 'Builder Agent (Kimi)', desc: 'FULLY AUTOMATED build. Only activate after $5k MRR. Reduces your build time to 0.', cost: '$0.30/run (~$3/day)', phase: 3 },
-    'upwork-api': { title: 'Upwork API/Scrape', desc: 'Free RSS feed scraping for job alerts. No API costs.', cost: 'Free', phase: 1 },
-    templates: { title: 'Proposal Templates', desc: 'Pre-written templates stored in Mission Control Memory. Kimi personalizes them.', cost: 'Free (one-time setup)', phase: 2 },
-    upwork: { title: 'Upwork Jobs', desc: 'Source of leads. Target: $500-$5000 projects initially.', cost: 'Free to browse', phase: 1 },
-    client: { title: 'Client', desc: 'Revenue source. Close 2-4 deals/month at $1k average = $2-4k MRR.', cost: 'Revenue!', phase: 1 },
-  };
-
-  const phaseCosts = {
-    1: { daily: 0, monthly: 0, description: 'You do everything. Learn the process.' },
-    2: { daily: 1.50, monthly: 45, description: 'Kimi assists, you approve. Sweet spot for bootstrap.' },
-    3: { daily: 4.50, monthly: 135, description: 'Full automation. Only when profitable.' },
-  };
+  const dailyCost = activeAgents
+    .filter(a => a.tier !== 'you')
+    .reduce((sum, a) => {
+      const cost = parseFloat(a.cost.replace('$', '').replace('/run', ''));
+      const runs = parseInt(a.dailyRuns.replace(/[^0-9]/g, '')) || 0;
+      return sum + (cost * runs);
+    }, 0);
 
   return (
-    <div className="h-screen flex flex-col">
-      <div className="flex items-center justify-between mb-2 p-4">
+    <div>
+      <div className="flex items-center justify-between mb-2">
         <div>
-          <h1 className="page-title mb-0">Bootstrap Architecture</h1>
+          <h1 className="page-title mb-0">Agent Architecture</h1>
           <p className="text-sm text-gray-500">
-            Phase {phase}: {phaseCosts[phase as keyof typeof phaseCosts].description}
+            {activeAgents.length} active agents, {futureAgents.length} future agents
           </p>
         </div>
-        <div className="flex gap-2">
-          {[1, 2, 3].map(p => (
-            <button
-              key={p}
-              onClick={() => setPhase(p)}
-              className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                phase === p 
-                  ? 'bg-accent text-white' 
-                  : 'bg-surface-2 text-gray-400 hover:text-white'
-              }`}
-            >
-              Phase {p}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Cost Summary */}
-      <div className="px-4 pb-2">
-        <div className="flex gap-4 text-xs">
+        <div className="flex items-center gap-4 text-xs">
           <div className="px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/20">
-            <span className="text-gray-400">Daily: </span>
-            <span className="text-green-400 font-bold">${phaseCosts[phase as keyof typeof phaseCosts].daily}</span>
+            <span className="text-gray-400">Daily Cost: </span>
+            <span className="text-green-400 font-bold">${dailyCost.toFixed(2)}</span>
           </div>
           <div className="px-3 py-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
             <span className="text-gray-400">Monthly: </span>
-            <span className="text-blue-400 font-bold">${phaseCosts[phase as keyof typeof phaseCosts].monthly}</span>
-          </div>
-          <div className="px-3 py-2 rounded-lg bg-purple-500/10 border border-purple-500/20">
-            <span className="text-gray-400">Target MRR: </span>
-            <span className="text-purple-400 font-bold">${phase === 1 ? '1-2k' : phase === 2 ? '3-5k' : '10k+'}</span>
+            <span className="text-blue-400 font-bold">${(dailyCost * 30).toFixed(0)}</span>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 flex">
-        <div className="flex-1">
-          <ReactFlow
-            nodes={nodes.filter(n => !n.hidden)}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onNodeClick={onNodeClick}
-            nodeTypes={nodeTypes}
-            fitView
-            attributionPosition="bottom-left"
+      {/* Workflow Summary */}
+      <div className="card mb-6">
+        <h3 className="text-sm font-semibold text-white mb-3">Workflow</h3>
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="px-3 py-1.5 rounded-lg bg-purple-500/20 text-purple-300">You</span>
+          <span className="text-gray-500">→</span>
+          <span className="px-3 py-1.5 rounded-lg bg-green-500/20 text-green-300">Sourcer finds jobs</span>
+          <span className="text-gray-500">→</span>
+          <span className="px-3 py-1.5 rounded-lg bg-green-500/20 text-green-300">Qualifier scores</span>
+          <span className="text-gray-500">→</span>
+          <span className="text-amber-400 font-medium">You approve</span>
+          <span className="text-gray-500">→</span>
+          <span className="px-3 py-1.5 rounded-lg bg-blue-500/20 text-blue-300">Proposal drafts</span>
+          <span className="text-gray-500">→</span>
+          <span className="text-amber-400 font-medium">You send</span>
+          <span className="text-gray-500">→</span>
+          <span className="px-3 py-1.5 rounded-lg bg-pink-500/20 text-pink-300">Client</span>
+        </div>
+        <p className="text-xs text-gray-500 mt-3">
+          You control every external action. AI assists, you decide. Zero risk of runaway costs.
+        </p>
+      </div>
+
+      {/* Active Agents */}
+      <h2 className="text-lg font-semibold text-white mb-3">Active Agents</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+        {activeAgents.map(agent => (
+          <div 
+            key={agent.id}
+            className="card-hover group cursor-pointer"
+            onClick={() => setSelectedAgent(agent)}
           >
-            <Background color="#333" gap={16} />
-            <Controls />
-            <MiniMap nodeStrokeWidth={3} zoomable pannable />
-          </ReactFlow>
-        </div>
-
-        {selectedNode && nodeInfo[selectedNode] && (
-          <div className="w-80 p-4 border-l border-white/10 bg-surface-2/50 overflow-y-auto">
-            <div className="flex items-center gap-2 mb-2">
-              <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${
-                nodeInfo[selectedNode].phase <= phase ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'
-              }`}>
-                Phase {nodeInfo[selectedNode].phase}
-              </span>
-              {nodeInfo[selectedNode].phase <= phase ? (
-                <span className="text-green-400 text-xs">✓ Active</span>
-              ) : (
-                <span className="text-gray-500 text-xs">Locked</span>
-              )}
-            </div>
-            <h3 className="font-bold text-lg text-white mb-2">{nodeInfo[selectedNode].title}</h3>
-            <p className="text-sm text-gray-300 mb-4">{nodeInfo[selectedNode].desc}</p>
-            <div className="text-xs">
-              <span className="text-gray-500">Cost: </span>
-              <span className={nodeInfo[selectedNode].cost.includes('Free') ? 'text-green-400' : 'text-amber-400'}>
-                {nodeInfo[selectedNode].cost}
+            <div className="flex items-start gap-3">
+              <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold ${TIER_COLORS[agent.tier]}`}>
+                {getInitials(agent.name)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-semibold text-white">{agent.name}</h3>
+                <p className="text-xs text-gray-400">{agent.role}</p>
+              </div>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full border ${TIER_COLORS[agent.tier]}`}>
+                {TIER_LABELS[agent.tier]}
               </span>
             </div>
-            <button 
-              onClick={() => setSelectedNode(null)}
-              className="mt-4 text-xs text-gray-500 hover:text-white"
-            >
-              Close
-            </button>
+            <p className="mt-3 text-xs text-gray-400 line-clamp-2">{agent.responsibilities}</p>
+            <div className="mt-3 flex items-center justify-between text-xs">
+              <span className="text-gray-500">{agent.cost}</span>
+              <span className="text-gray-500">{agent.dailyRuns}</span>
+            </div>
           </div>
-        )}
+        ))}
       </div>
 
-      {/* Phase Guide */}
-      <div className="p-4 border-t border-white/10 bg-surface-2/30">
-        <div className="grid grid-cols-3 gap-4 text-xs">
-          <div className={`p-3 rounded-lg border ${phase === 1 ? 'bg-purple-500/10 border-purple-500/30' : 'bg-surface-2 border-white/5'}`}>
-            <div className="font-bold text-white mb-1">Phase 1: Manual (Week 1-2)</div>
-            <div className="text-gray-400">You do everything. Learn Upwork, write proposals manually, close first 2 deals. Zero AI cost.</div>
-            <div className="text-green-400 mt-2">Cost: $0/day</div>
+      {/* Future Agents */}
+      <h2 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+        Future Agents
+        <span className="text-xs font-normal text-gray-500">(Unlock after $3k MRR)</span>
+      </h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {futureAgents.map(agent => (
+          <div 
+            key={agent.id}
+            className="card opacity-50 hover:opacity-75 transition-opacity cursor-pointer"
+            onClick={() => setSelectedAgent(agent)}
+          >
+            <div className="flex items-start gap-3">
+              <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold ${TIER_COLORS[agent.tier]}`}>
+                {getInitials(agent.name)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-semibold text-white">{agent.name}</h3>
+                <p className="text-xs text-gray-400">{agent.role}</p>
+              </div>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full border ${TIER_COLORS[agent.tier]}`}>
+                {TIER_LABELS[agent.tier]}
+              </span>
+            </div>
+            <p className="mt-3 text-xs text-gray-400 line-clamp-2">{agent.responsibilities}</p>
+            <div className="mt-3 text-xs text-amber-400/70">
+              🔒 {agent.dailyRuns}
+            </div>
           </div>
-          <div className={`p-3 rounded-lg border ${phase === 2 ? 'bg-blue-500/10 border-blue-500/30' : 'bg-surface-2 border-white/5'}`}>
-            <div className="font-bold text-white mb-1">Phase 2: Semi-Auto (Week 3-4)</div>
-            <div className="text-gray-400">Kimi finds and drafts. You approve and personalize. 80% time savings, minimal cost.</div>
-            <div className="text-blue-400 mt-2">Cost: $1.50/day ($45/month)</div>
-          </div>
-          <div className={`p-3 rounded-lg border ${phase === 3 ? 'bg-amber-500/10 border-amber-500/30' : 'bg-surface-2 border-white/5'}`}>
-            <div className="font-bold text-white mb-1">Phase 3: Full Auto (Month 2+)</div>
-            <div className="text-gray-400">Builder agent automates delivery. Only activate after $5k MRR. Scale without you.</div>
-            <div className="text-amber-400 mt-2">Cost: $4.50/day ($135/month)</div>
-          </div>
+        ))}
+      </div>
+
+      {/* Cost Breakdown */}
+      <div className="mt-8 grid grid-cols-3 gap-4">
+        <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/20">
+          <div className="text-xs text-gray-400 mb-1">Cheap Agents</div>
+          <div className="text-lg font-bold text-green-400">$0.80/day</div>
+          <div className="text-xs text-gray-500">Sourcer + Qualifier</div>
+        </div>
+        <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
+          <div className="text-xs text-gray-400 mb-1">Mid Agent</div>
+          <div className="text-lg font-bold text-blue-400">$0.30/day</div>
+          <div className="text-xs text-gray-500">Proposal (3 runs)</div>
+        </div>
+        <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/20">
+          <div className="text-xs text-gray-400 mb-1">Total Daily</div>
+          <div className="text-lg font-bold text-white">${dailyCost.toFixed(2)}</div>
+          <div className="text-xs text-gray-500">~${(dailyCost * 30).toFixed(0)}/month</div>
         </div>
       </div>
+
+      {/* Detail Modal */}
+      {selectedAgent && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          onClick={() => setSelectedAgent(null)}
+        >
+          <div 
+            className="w-full max-w-md card"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-semibold ${TIER_COLORS[selectedAgent.tier]}`}>
+                  {getInitials(selectedAgent.name)}
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white">{selectedAgent.name}</h3>
+                  <p className="text-sm text-gray-400">{selectedAgent.role}</p>
+                </div>
+              </div>
+              <button onClick={() => setSelectedAgent(null)} className="text-gray-500 hover:text-white">✕</button>
+            </div>
+            
+            <div className={`inline-block px-3 py-1 rounded-full text-xs border mb-4 ${TIER_COLORS[selectedAgent.tier]}`}>
+              {TIER_LABELS[selectedAgent.tier]}
+            </div>
+            
+            <p className="text-sm text-gray-300 mb-4">{selectedAgent.responsibilities}</p>
+            
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-gray-500 block text-xs">Cost</span>
+                <span className={selectedAgent.tier === 'cheap' ? 'text-green-400' : selectedAgent.tier === 'mid' ? 'text-blue-400' : 'text-gray-400'}>
+                  {selectedAgent.cost}
+                </span>
+              </div>
+              <div>
+                <span className="text-gray-500 block text-xs">Daily Runs</span>
+                <span className="text-gray-300">{selectedAgent.dailyRuns}</span>
+              </div>
+            </div>
+
+            {selectedAgent.status === 'future' && (
+              <div className="mt-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300">
+                🔒 Unlock after hitting $3,000 MRR. This agent enables full automation.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
