@@ -42,6 +42,7 @@ export default function JobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Job | null>(null);
+  const [flash, setFlash] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const res = await fetch('/api/jobs').then(r => r.json()).catch(() => ({ ok: false, data: [] }));
@@ -86,7 +87,10 @@ export default function JobsPage() {
 
   const approveAndDraft = async (job: Job) => {
     const res = await fetch(`/api/jobs/${job.id}/approve`, { method: 'POST' }).then(r => r.json());
-    if (!res?.ok) return;
+    if (!res?.ok) {
+      setFlash('Approve failed. Try again.');
+      return;
+    }
 
     const draftText = [
       res.data?.draft?.coverLetter || '',
@@ -95,11 +99,18 @@ export default function JobsPage() {
       ...(res.data?.draft?.qa || []).map((x: any, i: number) => `${i + 1}. ${x.q}\n${x.a}`),
     ].join('\n');
 
+    let copied = false;
     try {
       await navigator.clipboard.writeText(draftText);
+      copied = true;
     } catch {}
 
     if (job.source_url) window.open(job.source_url, '_blank', 'noopener,noreferrer');
+    setFlash(copied
+      ? 'Approved. Draft copied to clipboard. Upwork tab opened.'
+      : 'Approved. Upwork tab opened. Copy draft from job notes.');
+
+    window.setTimeout(() => setFlash(null), 5000);
     await load();
   };
 
@@ -127,6 +138,12 @@ export default function JobsPage() {
         </div>
         <button onClick={() => { setEditing(null); setModalOpen(true); }} className="btn-primary">+ Add Job</button>
       </div>
+
+      {flash && (
+        <div className="mb-4 rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-200 text-sm px-3 py-2">
+          {flash}
+        </div>
+      )}
 
       <div className="grid grid-cols-6 gap-3">
         {COLUMNS.map(col => {
@@ -235,7 +252,7 @@ function JobCard({
           onClick={onApprove}
           className="mt-2 w-full text-[10px] py-1.5 rounded-lg bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 transition-colors font-medium"
         >
-          Approve & Draft Application
+          Approve + Open Upwork Draft
         </button>
       )}
 
